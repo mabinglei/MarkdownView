@@ -44,6 +44,7 @@ struct MarkdownMathRenderer {
             let latexText = String(text[range])
             nodeViews.append(MarkdownNodeView {
                 LaTeX(latexText)
+                    .forwardedScrollEvents()
                     .font(configuration.fontGroup.inlineMath)
             })
             

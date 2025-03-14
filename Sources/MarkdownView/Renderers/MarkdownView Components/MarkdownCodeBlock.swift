@@ -14,54 +14,67 @@ import SwiftUI
 struct MarkdownCodeBlock: View {
     var language: String?
     var code: String
-    
     @Environment(\.markdownRendererConfiguration) private var configuration
     @State private var showCopyButton = false
     @State private var attributedCode: AttributedString?
     
     var body: some View {
-        Group {
-            if let attributedCode {
-                Text(attributedCode)
-            } else {
-                Text(code)
+        let lineCount = code.components(separatedBy: "\n").count
+        VStack {
+            HStack(alignment: .center, spacing: 4) {
+                codeLanguage
+                Spacer()
+                if showCopyButton {
+                    CopyButton(content: code)
+                        .padding([.top, .trailing], 4)
+                        .transition(.opacity.animation(.easeInOut))
+                } else {
+                    Color.clear
+                        .frame(width: 10, height: 10)
+                        .padding(8)
+                        .padding([.top, .trailing], 4)
+                }
+            }
+            HStack(alignment: .top, spacing: 0) {
+                Text((1..<lineCount).map { String($0) }.joined(separator: "\n"))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 6)
+                Group {
+                    if let attributedCode {
+                        Text(attributedCode)
+                    } else {
+                        Text(code)
+                    }
+                }
+                .padding(.leading, 6)
+                .forwardedScrollEvents()
             }
         }
         .task(id: codeBlockStorage) {
             highlight()
         }
-        .lineSpacing(5)
         .font(configuration.fontGroup.codeBlock)
-        .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
-        #if os(macOS) || os(iOS)
-        .overlay(alignment: .topTrailing) {
-            if showCopyButton {
-                CopyButton(content: code)
-                    .padding(8)
-                    .transition(.opacity.animation(.easeInOut))
-            }
-        }
         .onHover { showCopyButton = $0 }
-        #endif
-        .overlay(alignment: .bottomTrailing) {
-            codeLanguage
-        }
     }
     
     @ViewBuilder
     private var codeLanguage: some View {
-        if let language {
-            Text(language.uppercased())
-                .font(.callout)
-                .padding(8)
-                .foregroundStyle(.secondary)
+        if let language = language?.lowercased() {
+            HStack(spacing: 0) {
+                Image(language).padding(.leading,6)
+                Text(language.capitalized)
+                    .font(.callout)
+                    .padding(8)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
-
+    
     private func highlight() {
-        #if canImport(Highlightr)
+#if canImport(Highlightr)
         let highlightr = Highlightr()!
         highlightr.setTheme(to: configuration.currentCodeHighlightTheme)
         
@@ -76,7 +89,7 @@ struct MarkdownCodeBlock: View {
         code.removeAttribute(.font, range: NSMakeRange(0, code.length))
         
         attributedCode = AttributedString(code)
-        #endif
+#endif
     }
 }
 
@@ -103,11 +116,11 @@ extension MarkdownCodeBlock {
 struct CopyButton: View {
     var content: String
     @State private var copied = false
-    #if os(macOS)
-    @ScaledMetric private var size = 12
-    #else
+#if os(macOS)
+    @ScaledMetric private var size = 10
+#else
     @ScaledMetric private var size = 18
-    #endif
+#endif
     @State private var isHovering = false
     
     var body: some View {
@@ -141,12 +154,12 @@ struct CopyButton: View {
     }
     
     private func copy() {
-        #if os(macOS)
+#if os(macOS)
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(content, forType: .string)
-        #else
+#else
         UIPasteboard.general.string = content
-        #endif
+#endif
         Task {
             withAnimation(.spring()) {
                 copied = true
